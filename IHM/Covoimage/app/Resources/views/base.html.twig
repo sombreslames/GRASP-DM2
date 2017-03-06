@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <title>{% block title %}Welcome!{% endblock %}</title>
+        {% block stylesheets %}
+            <!-- Latest compiled and minified CSS -->
+            <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+            <!-- jQuery library -->
+            <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+            <!-- Latest compiled JavaScript -->
+            <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+        {% endblock %}
+        <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}" />
+    </head>
+    <body>
+        <header class="header">
+            <ul class="navi">
+                <li><a href="{{ path('homepage') }}">Homepage</a></li>
+                {% if is_granted('ROLE_USER') %}
+                    <li><a href="{{ path('logout') }}">Logout</a></li>
+                    <li><a href="{{ path('profile') }}">Profile</a></li>
+                {% else %}
+                    <li><a href="{{ path('login') }}">Login</a></li>
+                    <li><a href="{{ path('user_registration') }}">Register</a></li>
+                {% endif %}
+
+            </ul>
+        </header>
+        <h1 class="page-header text-center">
+            Welcome
+            {{ app.user ? app.user.email : 'Aquanauts' }}!
+        </h1>
+        {% block body %}{% endblock %}
+        {% block javascripts %}{% endblock %}
+    </body>
+</html>

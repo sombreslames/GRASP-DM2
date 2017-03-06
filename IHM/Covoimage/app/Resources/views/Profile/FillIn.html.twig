@@ -1,0 +1,32 @@
+{# app/Resources/views/security/login.html.twig #}
+{# ... you will probably extend your base template, like base.html.twig #}
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <div class="container">
+        <div class="row">
+            <div class="col-xs-12">
+                <h1>Your profile !</h1>
+                {% if error %}
+                    <div class="alert alert-danger">
+                        {{ error.messageKey|trans(error.messageData, 'security') }}
+                    </div>
+                {% endif %}
+                {% if form %}
+                    {#FILLIN PROFILE FORM#}
+                {{ form_start(form) }}
+                    {{ form_row(form._nom) }}
+                    {{ form_row(form._prenom) }}
+                    {{ form_row(form._dateNaissance) }}
+                    {{ form_row(form._sexe) }}
+                    <button type="submit" class="btn btn-success">Login <span class ="fa fa-lock"></span></button>
+                {{ form_end(form) }}
+                {% else %}
+                    {#DISPLAY THE EXISTING PROFILE WITH AN MODIFY BUTTON#}
+                {%  endif %}
+
+            </div>
+        </div>
+
+    </div>
+{% endblock %}

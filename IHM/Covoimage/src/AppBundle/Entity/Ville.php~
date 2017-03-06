@@ -1,0 +1,98 @@
+<?php
+namespace AppBundle\Entity;
+use Symfony\Component\Validator\Constraints as CSTRT;
+use Doctrine\ORM\Mapping as ORM;
+
+/**
+ * @ORM\Entity
+ * @ORM\Table(name="Ville")
+ */
+class Ville
+{
+	/**
+	 * Clé primaire de Ville
+	 * @ORM\Column(name="ID_Ville", type="integer")
+	 * @ORM\Id
+	 * @ORM\GeneratedValue(strategy="AUTO")
+	 */
+	private $ID_Ville;
+	/**
+	 * @ORM\Column(name="nomVille", type="string")
+	 * @CSTRT\Regex(
+     *     pattern="/\d/",
+     *     match=false,
+     *     message="Un nom de ville ne peut pas contenir de nombre"
+	 *     )
+	 * @CSTRT\NotBlank()
+	 */
+	private $nomVille;
+	/**
+	 * @CSTRT\Regex(
+     *     pattern="/\w/",
+     *     match=false,
+     *     message="Un code postal ne peut pas contenir de lettre"
+	 *     )
+	 * @CSTRT\NotBlank()
+	 * @ORM\Column(name="codePostal", type="string")
+	 */
+	private $codePostal;
+	
+
+    /**
+     * Get iDVille
+     *
+     * @return integer
+     */
+    public function getIDVille()
+    {
+        return $this->ID_Ville;
+    }
+
+    /**
+     * Set nomVille
+     *
+     * @param string $nomVille
+     *
+     * @return Ville
+     */
+    public function setNomVille($nomVille)
+    {
+        $this->nomVille = $nomVille;
+
+        return $this;
+    }
+
+    /**
+     * Get nomVille
+     *
+     * @return string
+     */
+    public function getNomVille()
+    {
+        return $this->nomVille;
+    }
+
+    /**
+     * Set codePostal
+     *
+     * @param string $codePostal
+     *
+     * @return Ville
+     */
+    public function setCodePostal($codePostal)
+    {
+        $this->codePostal = $codePostal;
+
+        return $this;
+    }
+
+    /**
+     * Get codePostal
+     *
+     * @return string
+     */
+    public function getCodePostal()
+    {
+        return $this->codePostal;
+    }
+}

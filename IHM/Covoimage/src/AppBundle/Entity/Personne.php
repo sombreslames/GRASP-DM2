@@ -1,0 +1,239 @@
+<?php
+namespace AppBundle\Entity;
+use Doctrine\DBAL\Types\DateType;
+use Doctrine\DBAL\Types\StringType;
+use Symfony\Component\Validator\Constraints as CSTRT;
+use Doctrine\ORM\Mapping as ORM;
+use AppBundle\Repository\PersonneRepository;
+/**
+ * @ORM\Entity
+ * @ORM\Table(name="Personne")
+ * @ORM\Entity(repositoryClass="AppBundle\Repository\PersonneRepository")
+ */
+class Personne
+{
+	/**
+	 * Clé primaire de Personne et etrangere d euser
+     * One personne has One user.
+     * @ORM\Id
+     * @ORM\Column(name="ID_personne", type="integer")
+     * @ORM\OneToOne(targetEntity="User")
+     * @ORM\JoinColumn(name="ID_personne", referencedColumnName="ID_user")
+     */
+	private $ID_personne;
+	/**
+	 * @ORM\Column(name="nom", type="string")
+     * @CSTRT\NotBlank(groups={"Profile"})
+	 * @CSTRT\Regex(
+     *     pattern="/\d/",
+     *     match=false,
+     *     message="Ton nom ne peut pas contenir de nombre"
+	 *     )
+	 */
+	private $nom;
+	/**
+	 * @CSTRT\Regex(
+     *     pattern="/\d/",
+     *     match=false,
+     *     message="Ton prenom ne peut pas contenir de nombre"
+	 *     )
+     * @CSTRT\NotBlank(groups={"Profile"})
+	 * @ORM\Column(name="prenom", type="string")
+	 */
+	private $prenom;
+	/**
+     * @CSTRT\NotBlank(groups={"Profile"})
+	 * @CSTRT\LessThanOrEqual("-18 years")
+	 * @ORM\Column(name="dateNaissance", type="date")
+	 */
+	private $dateNaissance;
+	/**
+	 * @CSTRT\Choice(choices = {"Homme", "Femme"}, message = "Choisisez un sexe valide.")
+     * @CSTRT\NotBlank(groups={"Profile"})
+	 * @ORM\Column(name="sexe", type="boolean")
+	 */
+	private $sexe;
+	/**
+	 * Une personne peut avoir plusieurs "modele de "voitures"
+	 * Une voiture peut avoir plusieurs "proprietaire"
+	 * @ORM\ManyToMany(targetEntity="AppBundle\Entity\Vehicule", cascade={"persist"})
+	 * @ORM\JoinTable(name="Posseder",
+     *      joinColumns={@ORM\JoinColumn(name="Proprietaire", referencedColumnName="ID_personne")},
+     *      inverseJoinColumns={@ORM\JoinColumn(name="Voiture", referencedColumnName="ID_vehicule")})
+	 */
+	 private $voitures;
+	 
+	 /**
+     * Constructor
+     */
+    public function __construct()
+    {
+        $this->voitures = new \Doctrine\Common\Collections\ArrayCollection();
+    }
+
+    /**
+     * Get iDPersonne
+     *
+     * @return integer
+     */
+    public function getIDPersonne()
+    {
+        return $this->ID_personne;
+    }
+
+    /**
+     * Set nom
+     *
+     * @param string $nom
+     *
+     * @return Personne
+     */
+    public function setNom($nom)
+    {
+        $this->nom = $nom;
+
+        return $this;
+    }
+
+    /**
+     * Get nom
+     *
+     * @return string
+     */
+    public function getNom()
+    {
+        return $this->nom;
+    }
+
+    /**
+     * Set prenom
+     *
+     * @param string $prenom
+     *
+     * @return Personne
+     */
+    public function setPrenom($prenom)
+    {
+        $this->prenom = $prenom;
+
+        return $this;
+    }
+
+    /**
+     * Get prenom
+     *
+     * @return string
+     */
+    public function getPrenom()
+    {
+        return $this->prenom;
+    }
+
+    /**
+     * Set dateNaissance
+     *
+     * @param \DateTime $dateNaissance
+     *
+     * @return Personne
+     */
+    public function setDateNaissance($dateNaissance)
+    {
+        if(!$dateNaissance instanceof StringType)
+        {
+            $this->dateNaissance = $dateNaissance;
+        }else{
+            $this->dateNaissance = date_create($dateNaissance);
+        }
+        return $this;
+    }
+
+    /**
+     * Get dateNaissance
+     *
+     * @return \DateTime
+     */
+    public function getDateNaissance()
+    {
+        return $this->dateNaissance;
+    }
+
+    /**
+     * Set sexe
+     *
+     * @param boolean $sexe
+     *
+     * @return Personne
+     */
+    public function setSexe($sexe)
+    {
+		if(strcmp($sexe,"Homme")==0){
+			$this->sexe = 1;
+		}else{
+			$this->sexe = 0;
+		}
+        
+
+        return $this;
+    }
+
+    /**
+     * Get sexe
+     *
+     * @return boolean
+     */
+    public function getSexe()
+    {
+        return $this->sexe;
+    }
+	public static function getSexes()
+    {
+        return array('Homme', 'Femme');
+    }
+    /**
+     * Add voiture
+     *
+     * @param \AppBundle\Entity\Vehicule $voiture
+     *
+     * @return Personne
+     */
+    public function addVoiture(\AppBundle\Entity\Vehicule $voiture)
+    {
+        $this->voitures[] = $voiture;
+
+        return $this;
+    }
+
+    /**
+     * Remove voiture
+     *
+     * @param \AppBundle\Entity\Vehicule $voiture
+     */
+    public function removeVoiture(\AppBundle\Entity\Vehicule $voiture)
+    {
+        $this->voitures->removeElement($voiture);
+    }
+
+    /**
+     * Get voitures
+     *
+     * @return \Doctrine\Common\Collections\Collection
+     */
+    public function getVoitures()
+    {
+        return $this->voitures;
+    }
+
+    /**
+     * Set iDPersonne
+     *
+     * @param integer $iDPersonne
+     *
+     * @return Personne
+     */
+    public function setIDPersonne($iDPersonne)
+    {
+        $this->ID_personne = $iDPersonne;
+
+        return $this;
+    }
+}
