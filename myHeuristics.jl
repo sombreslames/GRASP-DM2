@@ -241,15 +241,21 @@ function SimulatedAnnealing(CS::CurrentSolution,InitTemperature::Int,CoolingCoef
    CSBest      = deepcopy(CS)
    Temperature = convert(Float64,InitTemperature)
    LOL         = true
+	Historic 	= Int[]
    while LOL
       for i in 1:1:StepSize
-         CSTemp = GetRandomNeighbour(CSTemp)
-         LocalCS        = deepcopy(CSTemp) #Work on CSTemp
-         DeltaObj       = CSTemp.CurrentObjectiveValue - CS.CurrentObjectiveValue
-         if DeltaObj > 0 || (exp(DeltaObj/Temperature) > rand())
-            CSTemp      =  deepcopy(LocalCS)
+         LocalCS 			= GetRandomNeighbour(CSTemp)
+         #LocalCS        = deepcopy(CSTemp) #Work on CSTemp
+         DeltaObj       = LocalCS.CurrentObjectiveValue - CSTemp.CurrentObjectiveValue
+			ValueOf			= exp(DeltaObj/Temperature)
+			RandValue 		= rand()
+         if DeltaObj > 0 || ValueOf > RandValue
+				#println("Solution accepted : f(x) ",CSTemp.CurrentObjectiveValue, " --> "," f'(x) : ",CSTemp.CurrentObjectiveValue)
+            CSTemp      = deepcopy(LocalCS)
+				Historic		= push!(Historic,CSTemp.CurrentObjectiveValue)
             if CSTemp.CurrentObjectiveValue > CSBest.CurrentObjectiveValue
                CSBest   =  deepcopy(CSTemp)
+					println("Improved ! We got : ",CSBest.CurrentObjectiveValue)
             end
          end
       end
@@ -258,7 +264,7 @@ function SimulatedAnnealing(CS::CurrentSolution,InitTemperature::Int,CoolingCoef
          LOL = false
       end
    end
-   return CSBest
+   return Historic,CSBest
 end
 
 function GetRandomNeighbour(CS::CurrentSolution)

@@ -75,18 +75,18 @@ for i in eachindex(FileList)
       AlphaVal   = [0.5, 0.6, 0.75, 0.9]
       AlphaProba = [0.25,0.25,0.25,0.25]
 
-      println("Before the run we got these Lambda :")
-      println(AlphaVal)
-      println("With these probabilities :")
-      println(AlphaProba)
-      Stat        = ProbStat(zeros(Float64,4),zeros(Float64,4),zeros(Float64,4),zeros(Float64,4),zeros(Int64,4),Vector{CurrentSolution}(4))
-      fill!(Stat.Min, typemax(Float64))
+      #println("Before the run we got these Lambda :")
+      #println(AlphaVal)
+      #println("With these probabilities :")
+      #println(AlphaProba)
+      #Stat        = ProbStat(zeros(Float64,4),zeros(Float64,4),zeros(Float64,4),zeros(Float64,4),zeros(Int64,4),Vector{CurrentSolution}(4))
+      #fill!(Stat.Min, typemax(Float64))
       itmax  = 1000
-      itmax1 = 10
+      itmax1 = 30
       AlphaValueOBJ = Array{Int64}(4,itmax*itmax1)
       #fill!(AlphaValueOBJ,Vector{Int64})
 
-      for k in 1:1:itmax1
+      #=for k in 1:1:itmax1
          for j in 1:1:itmax
             indLa,Alpha    = ReactiveGrasp(AlphaProba,AlphaVal)
             CS             = GraspConstruction(CurrentSolution(BPP.NBconstraints, BPP.NBvariables, 0, BPP.Variables,zeros(BPP.NBvariables), BPP.LeftMembers_Constraints, zeros(BPP.NBconstraints), zeros(2,BPP.NBvariables), zeros(BPP.NBvariables)),Alpha)
@@ -112,21 +112,24 @@ for i in eachindex(FileList)
          #GetRandomNeighbour(Stat.BestSolution[1])
 
          AlphaProba         = UpdateReactiveGrasp(AlphaProba, Stat.Average,Stat.Min,Stat.Max)
-         println("After the ",k*itmax," run we got :")
-         println(AlphaProba)
-         println(AlphaVal)
-         println("Maximum found : ",Stat.Max)
-         println("Minimum found : ",Stat.Min)
-         println("Average : ",Stat.Average)
-         println("Number of runs : ",Stat.NBdone)
-         SIMUaNNE = SimulatedAnnealing(Stat.BestSolution[1],500,0.75,5,10)
-         println("Solution with Simulated Annealing : \n",SIMUaNNE.CurrentObjectiveValue)
-      end=#
-      #indLa,Alpha    = ReactiveGrasp(AlphaProba,AlphaVal)
-      #CS             = GraspConstruction(CurrentSolution(BPP.NBconstraints, BPP.NBvariables, 0, BPP.Variables,zeros(BPP.NBvariables), BPP.LeftMembers_Constraints, zeros(BPP.NBconstraints), zeros(2,BPP.NBvariables), zeros(BPP.NBvariables)),Alpha)
-      #println("Got :",CS.CurrentObjectiveValue, " With GRASP construction")
-      #SIMUaNNE = SimulatedAnnealing(CS,500,0.75,5,10)
-      #println("Solution with Simulated Annealing : \n",SIMUaNNE.CurrentObjectiveValue)
+
+         #SIMUaNNE = SimulatedAnnealing(Stat.BestSolution[1],500,0.75,5,10)
+         #println("Solution with Simulated Annealing : \n",SIMUaNNE.CurrentObjectiveValue)
+      end
+      println("After the ",itmax1*itmax," run we got :")
+      println(AlphaProba)
+      println(AlphaVal)
+      println("Maximum found : ",Stat.Max)
+      println("Minimum found : ",Stat.Min)
+      println("Average : ",Stat.Average)
+      println("Number of runs : ",Stat.NBdone)=#
+      indLa,Alpha    = ReactiveGrasp(AlphaProba,AlphaVal)
+      CS             = GraspConstruction(CurrentSolution(BPP.NBconstraints, BPP.NBvariables, 0, BPP.Variables,zeros(BPP.NBvariables), BPP.LeftMembers_Constraints, zeros(BPP.NBconstraints), zeros(2,BPP.NBvariables), zeros(BPP.NBvariables)),Alpha)
+      println("Got :",CS.CurrentObjectiveValue, " With GRASP construction")
+      Historyx,SIMUaNNE = SimulatedAnnealing(CS,500,0.95,convert(Int,1.5*CS.NBvariables),1)
+      println("Solution with Simulated Annealing : \n",SIMUaNNE.CurrentObjectiveValue)
+      y                 = Array[1:length(Historyx)]
+      plot(Historyx, y, "b-", linewidth=2)
       #Plotting the 911 zith the government
       #=p = bar(AlphaVal,Stat.Max,align="center",alpha=0.4)
       xlabel("Alpha value")
