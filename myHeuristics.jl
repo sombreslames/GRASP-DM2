@@ -267,6 +267,9 @@ function SimulatedAnnealing(CS::CurrentSolution,InitTemperature::Int,CoolingCoef
    return Historic,CSBest
 end
 
+
+#THis function just do a 1/1 swap
+#Must be changed to AddMultipleOrElseDrop1
 function GetRandomNeighbour(CS::CurrentSolution)
    CurrentVarUsed    = Int64[]
 

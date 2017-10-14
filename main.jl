@@ -4,6 +4,7 @@
 #Julia JuMP
 #DM1 - Metaheuristiques
 using JuMP, GLPKMathProgInterface,PyPlot
+
 include("myHeuristics.jl")
 type Problem
    NBvariables::Int
@@ -61,14 +62,14 @@ end
 nbProb = 1
 FileList = readdir("./Data")
 dir = pwd()
-Resume              = Vector{Result}(20)
 
+Resume              = Vector{Result}(20)
 for i in eachindex(FileList)
    #MODEL CONSTRUCTION
    m           = Model(solver=GLPKSolverMIP())
    #READING DATA FROM FILE
    BPP = ReadFile(string("./Data/",FileList[i]))
-   if nbProb <= 8 && BPP.NBvariables <= 100 && BPP.NBconstraints <= 400
+   if nbProb <= 4 && BPP.NBvariables <= 100 && BPP.NBconstraints <= 400
       println("Probleme : ",FileList[i])
       #ProbTemp = Result();
 
@@ -126,10 +127,20 @@ for i in eachindex(FileList)
       indLa,Alpha    = ReactiveGrasp(AlphaProba,AlphaVal)
       CS             = GraspConstruction(CurrentSolution(BPP.NBconstraints, BPP.NBvariables, 0, BPP.Variables,zeros(BPP.NBvariables), BPP.LeftMembers_Constraints, zeros(BPP.NBconstraints), zeros(2,BPP.NBvariables), zeros(BPP.NBvariables)),Alpha)
       println("Got :",CS.CurrentObjectiveValue, " With GRASP construction")
-      Historyx,SIMUaNNE = SimulatedAnnealing(CS,500,0.95,convert(Int,1.5*CS.NBvariables),1)
+      HistoryY,SIMUaNNE = SimulatedAnnealing(CS,500,0.95,convert(Int,1.5*CS.NBvariables),1)
       println("Solution with Simulated Annealing : \n",SIMUaNNE.CurrentObjectiveValue)
-      y                 = Array[1:length(Historyx)]
-      plot(Historyx, y, "b-", linewidth=2)
+      HistoryX               = collect(1:1:length(HistoryY))
+      println("y :",length(HistoryY),"x :",length(HistoryX))
+
+      title(FileList[i])
+      plot(HistoryX,HistoryY, "--")
+      xlabel("Iterations")
+      ylabel("Objective value")
+      grid("on")
+      #plot(y,Historyx, "b-", linewidth=2)
+      #xlabel("Iterations")
+      #ylabel("Objective value")
+      #title(FileList[i])
       #Plotting the 911 zith the government
       #=p = bar(AlphaVal,Stat.Max,align="center",alpha=0.4)
       xlabel("Alpha value")
@@ -149,11 +160,12 @@ for i in eachindex(FileList)
       ProbTemp.HeurObj        = cs.CurrentObjectiveValue
       Resume[nbProb]          = deepcopy(ProbTemp)=#
       nbProb+=1
-   elseif nbProb > 8
+   elseif nbProb >4
       break;
    end
 
 end
+
 #=
 for resu in eachindex(Resume)
    println("For the problem ",Resume[resu].Name," with ",Resume[resu].NBvariables, " variables.")
