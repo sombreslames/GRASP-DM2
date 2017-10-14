@@ -27,12 +27,14 @@ function GraspConstruction(CS::CurrentSolution, Alpha::Float64)
    Available            = CS.NBvariables
    Utilities            = deepcopy(CS.Utility)
    RandomCandidateList  = Int[]
+	#println(CS.Utility)
    while Available > 1
       AboveTheLimit        = 0
       #CS.Utility save the real utility array at t = 1
       #Utilities is the current utilies, so without the impossible variables
       RandomCandidateList  = empty!(RandomCandidateList)
       LimitSelect = (minimum(Utilities[2,:]) + (Alpha * (maximum(Utilities[2,:])-minimum(Utilities[2,:]))))
+		#println(minimum(Utilities[2,:]), " + (" ,Alpha, " * " ,"(",maximum(Utilities[2,:]),- ,minimum(Utilities[2,:]),"))")
       #println("Limit for utility is :",LimitSelect)
       for i = 1:1:Available
          if Utilities[2,i] >= LimitSelect
@@ -40,15 +42,20 @@ function GraspConstruction(CS::CurrentSolution, Alpha::Float64)
             AboveTheLimit       += 1
          end
       end
-
+		#println("Available : ",Available, " AboveTheLimit : ",AboveTheLimit)
       if AboveTheLimit == 0
          break
       else
          #println("Candidate list is :",RandomCandidateList)
-         RandomPickedCandidate   = rand(RandomCandidateList,1)
+         RandomPickedCandidate   = rand(RandomCandidateList)
          #println("We picked ",RandomPickedCandidate)
-         answer,cs1              = SetToOne(cs1,RandomPickedCandidate[1])
-         #println("Current Solution : ",cs1.CurrentVariables,"\n For an OBJ worth :",cs1.CurrentObjectiveValue)
+         answer,cs1              = SetToOne(cs1,RandomPickedCandidate)
+			if answer
+				#println("Current Solution : ",cs1.CurrentVariables,"\n For an OBJ worth :",cs1.CurrentObjectiveValue)
+			else
+				println("Failed")
+			end
+
          Available,Utilities     = UpdateUtility(cs1)
       end
    end
@@ -57,11 +64,25 @@ function GraspConstruction(CS::CurrentSolution, Alpha::Float64)
 end
 
 function ComputeUtility(CS::CurrentSolution)
+	max = 0
    for i = 1:1:CS.NBvariables
          CS.Utility[1,i]   = i
          nb                = sum(CS.LeftMembers_Constraints[:,i])
-         CS.Utility[2,i]   = CS.Variables[i]/nb
+			if nb == 0
+				CS.Utility[2,i]   = 0
+			else
+				CS.Utility[2,i]   = CS.Variables[i]/nb
+				if CS.Utility[2,i]> max
+					max = CS.Utility[2,i]
+				end
+			end
    end
+	for i in eachindex(CS.Variables)
+		if CS.Utility[2,i] == 0
+			CS.Utility[2,i]   = max
+		end
+	end
+
    CS.Utility    = sortcols(CS.Utility, rev=true, by = x -> (x[2]))
    return CS
 end
@@ -71,7 +92,8 @@ function UpdateUtility(CS::CurrentSolution)
    UtilitiesValues   = Float64[]
    Inc               = 1
    for i = 1:1:CS.NBvariables
-      if CS.Freedom[convert(Int,CS.Utility[1,i])] == 0
+		index = convert(Int,CS.Utility[1,i])
+      if CS.Freedom[index] == 0 && CS.CurrentVariables[index] == 0
          UtilitiesIndex    = push!(UtilitiesIndex,CS.Utility[1,i])
          UtilitiesValues   = push!(UtilitiesValues,CS.Utility[2,i])
          Inc += 1
@@ -214,11 +236,7 @@ function ReactiveGrasp(AlphaProba::Vector{Float64},AlphaVal::Vector{Float64})
    return length(AlphaVal),AlphaVal[length(AlphaVal)]
 end
 
-
-
-
-#=
-function SimulatedAnnealing (CS::CurrentSolution,InitTemperature::Int,CoolingCoef::Float64,StepSize::Int,MinTemp::Int)
+function SimulatedAnnealing(CS::CurrentSolution,InitTemperature::Int,CoolingCoef::Float64,StepSize::Int,MinTemp::Int)
    CSTemp      = deepcopy(CS)
    CSBest      = deepcopy(CS)
    Temperature = convert(Float64,InitTemperature)
@@ -242,7 +260,7 @@ function SimulatedAnnealing (CS::CurrentSolution,InitTemperature::Int,CoolingCoe
    end
    return CSBest
 end
-=#
+
 function GetRandomNeighbour(CS::CurrentSolution)
    CurrentVarUsed    = Int64[]
 
@@ -269,8 +287,8 @@ function GetRandomNeighbour(CS::CurrentSolution)
             RandomlyPickedFreeVar = rand(CurrentVarFree)
             answer,CSTemp   =  SetToOne(CSTemp,RandomlyPickedFreeVar)
             if answer
-               println("Old solution value : ",CS.CurrentObjectiveValue,"\n After setting x",RandomlyPickedUsedVar," to 0 we have  ",CSRand.CurrentObjectiveValue)
-               println("After setting x",RandomlyPickedFreeVar," to 1 we got :",CSTemp.CurrentObjectiveValue)
+               #println("Old solution value : ",CS.CurrentObjectiveValue,"\n After setting x",RandomlyPickedUsedVar," to 0 we have  ",CSRand.CurrentObjectiveValue)
+               #println("After setting x",RandomlyPickedFreeVar," to 1 we got :",CSTemp.CurrentObjectiveValue)
                return CSTemp
             else
                CSTemp   = CSRand
