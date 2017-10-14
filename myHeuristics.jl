@@ -236,7 +236,7 @@ function ReactiveGrasp(AlphaProba::Vector{Float64},AlphaVal::Vector{Float64})
    return length(AlphaVal),AlphaVal[length(AlphaVal)]
 end
 
-function SimulatedAnnealing(CS::CurrentSolution,InitTemperature::Int,CoolingCoef::Float64,StepSize::Int,MinTemp::Int)
+function SimulatedAnnealing(CS::CurrentSolution,InitTemperature::Int,CoolingCoef::Float64,StepSize::Int,MinTemp::Float64)
    CSTemp      = deepcopy(CS)
    CSBest      = deepcopy(CS)
    Temperature = convert(Float64,InitTemperature)
@@ -288,11 +288,21 @@ function GetRandomNeighbour(CS::CurrentSolution)
       if answerz
          CSTemp            = deepcopy(CSRand)
          for j = 1:1:CS.NBvariables
-            if CSRand.Utility[1,j] != RandomlyPickedUsedVar && CSRand.Freedom[convert(Int64,CSRand.Utility[1,j])] == 0
-               push!(CurrentVarFree,convert(Int64,CSRand.Utility[1,j]))
+            index = convert(Int64,CSRand.Utility[1,j])
+            if index != RandomlyPickedUsedVar && CSRand.Freedom[index] == 0
+               answer,CSTemp   =  SetToOne(CSTemp,index)
+               if answer
+                  #println("Old solution value : ",CS.CurrentObjectiveValue,"\n After setting x",RandomlyPickedUsedVar," to 0 we have  ",CSRand.CurrentObjectiveValue)
+                  #println("After setting x",RandomlyPickedFreeVar," to 1 we got :",CSTemp.CurrentObjectiveValue)
+                  CSRand   = deepcopy(CSTemp)
+               else
+                  CSTemp   = deepcopy(CSRand)
+               end
+               #push!(CurrentVarFree,convert(Int64,CSRand.Utility[1,j]))
             end
          end
-         if length(CurrentVarFree)>0
+         return CSRand
+         #=if length(CurrentVarFree)>0
             RandomlyPickedFreeVar = rand(CurrentVarFree)
             answer,CSTemp   =  SetToOne(CSTemp,RandomlyPickedFreeVar)
             if answer
@@ -302,7 +312,7 @@ function GetRandomNeighbour(CS::CurrentSolution)
             else
                CSTemp   = CSRand
             end
-         end
+         end=#
       end
    end
    return CS
