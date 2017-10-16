@@ -13,6 +13,7 @@ type CurrentSolution
    CurrentObjectiveValue::Int
    Variables::Vector{Int}
    CurrentVariables::Vector{Int}
+   CurrentVarUsed::Vector{Int}
    LeftMembers_Constraints::SparseMatrixCSC{Float64,Int64}
    LastRightMemberValue_Constraint::Vector{Int}
    Utility::Array{Float64,2}
@@ -105,61 +106,6 @@ function UpdateUtility(CS::CurrentSolution)
    return Inc-1,Utilities
 end
 
-#Fonction recursive permettant l'eploration des solutions voisines admissibles
-function LocalSearch(CS::CurrentSolution, Randomness::Int)
-   OldObjectiveValue = CS.CurrentObjectiveValue
-   FailedToImprove   = 0
-   CurrentVarUsed    = Int64[]
-   CurrentBestSol    = 0
-   CS_arr= Vector{CurrentSolution}(Randomness)
-   while FailedToImprove < (CS.NBvariables)
-      for cv in eachindex(CS.CurrentVariables)
-         if CS.CurrentVariables[cv] == 1
-            push!(CurrentVarUsed,cv)
-         end
-      end
-      CurrentBestSol = 0
-      RandomlyPickedVar=union(rand(CurrentVarUsed,Randomness-1))
-      fill!(CS_arr,CS)
-      for i = 1:(length(RandomlyPickedVar)-1)#retirer 1 a la taille
-         CS_arr[i]            = deepcopy(CS)
-         answerz,CS_arr[i]    = SetToZero(CS_arr[i],RandomlyPickedVar[i])
-         if answerz
-            CS_arr[Randomness]   = CS_arr[i]
-
-            for j = 1:1:CS.NBvariables
-               if CS_arr[i].Utility[1,j] != RandomlyPickedVar[i]
-                  # previous condition : && CS_arr[i].Freedom[convert(Int,CS_arr[i].Utility[1,j])] == 0
-                  answer,CS_arr[i]   =  SetToOne(CS_arr[i],convert(Int64,CS_arr[i].Utility[1,j]))
-                  if answer
-                     CS_arr[Randomness]   = CS_arr[i]
-                  else
-                     CS_arr[i]   = CS_arr[Randomness]
-                  end
-               end
-            end
-         end
-
-      end
-      #Garde la meilleur valeur objective et l'index de la meilleure solution
-      for sol  = 1:1:length(CS_arr)
-         if CS_arr[sol].CurrentObjectiveValue > OldObjectiveValue
-               CS = deepcopy(CS_arr[sol])
-               #println("We improved it !",OldObjectiveValue,"-->",CS.CurrentObjectiveValue)
-               OldObjectiveValue = CS_arr[sol].CurrentObjectiveValue
-               CurrentBestSol=1
-         end
-      end
-
-      if CurrentBestSol == 0
-         FailedToImprove += 1
-      else
-         FailedToImprove = 0
-      end
-   end
-   return CS
-end
-
 function SetToZero(CS::CurrentSolution, x::Int)
    if CS.CurrentVariables[x] == 1
       for j in 1:1:CS.NBconstraints
@@ -175,6 +121,7 @@ function SetToZero(CS::CurrentSolution, x::Int)
    else
       return false,CS
    end
+   CS.CurrentVarUsed      = deleteat!(CS.CurrentVarUsed,findin(CS.CurrentVarUsed,x))
    CS.CurrentVariables[x] = 0
    CS.CurrentObjectiveValue-=CS.Variables[x]
    return true,CS
@@ -191,13 +138,7 @@ function SetToOne(CS::CurrentSolution, x::Int)
                         CS.Freedom[i]-=1
                      end
                   end
-
-                  # X = la matrice des contraites
-                  # V = LastLeftMemberValue_Constraint
-                  # Fixe V(i,j) = 0 si X(i,j) ==1 dans la matrice des contraines et si la variable Xj a pour valeur 1
-                  # sinon V(i,j)=1 si X(i,j) ==1 dans la matrice des contraitnes et si la Variable Xj a pour valeur 0
                else
-                  #println("Setting one to X",x," violate the constraint number ",j,".")
                   return false,CS
                end
             end
@@ -205,9 +146,9 @@ function SetToOne(CS::CurrentSolution, x::Int)
    else
       return false,CS
    end
-   CS.CurrentVariables[x] = 1
+   CS.CurrentVarUsed       = push!(CS.CurrentVarUsed,x)
+   CS.CurrentVariables[x]  = 1
    CS.CurrentObjectiveValue+=CS.Variables[x]
-   #println("Variable X",x," have been set to one.")
    return true,CS
 end
 
@@ -238,10 +179,10 @@ function ReactiveGrasp(AlphaProba::Vector{Float64},AlphaVal::Vector{Float64})
    return length(AlphaVal),AlphaVal[length(AlphaVal)]
 end
 
-function SimulatedAnnealing(CS::CurrentSolution,InitTemperature::Int,CoolingCoef::Float64,StepSize::Int,MinTemp::Float64)
+function SimulatedAnnealing(CS::CurrentSolution,InitTemperature::Float64,CoolingCoef::Float64,StepSize::Int,MinTemp::Float64)
    CSTemp      = deepcopy(CS)
    CSBest      = deepcopy(CS)
-   Temperature = convert(Float64,InitTemperature)
+   Temperature = InitTemperature
    LOL         = true
 	Historic 	= Int[]
    while LOL
@@ -273,20 +214,12 @@ end
 #THis function just do a 1/1 swap
 #Must be changed to AddMultipleOrElseDrop1
 function GetRandomNeighbour(CS::CurrentSolution)
-   CurrentVarUsed    = Int64[]
-
-   for VarOn in eachindex(CS.CurrentVariables)
-      if CS.CurrentVariables[VarOn] == 1
-         push!(CurrentVarUsed,VarOn)
-      end
-   end
-
    while true
-      CurrentVarFree    = Int64[]
-      RandomlyPickedUsedVar=rand(CurrentVarUsed)
-      CSTemp            = deepcopy(CS)
-      answerz,CSRand    = SetToZero(CSTemp,RandomlyPickedUsedVar)
-
+      CurrentVarFree        = Int64[]
+      RandomlyPickedUsedVar = rand(CS.CurrentVarUsed)
+      #println("We picked ",RandomlyPickedUsedVar," from the used var ",CS.CurrentVarUsed)
+      CSTemp                = deepcopy(CS)
+      answerz,CSRand        = SetToZero(CSTemp,RandomlyPickedUsedVar)
       if answerz
          CSTemp            = deepcopy(CSRand)
          for j = 1:1:CS.NBvariables
@@ -294,27 +227,13 @@ function GetRandomNeighbour(CS::CurrentSolution)
             if index != RandomlyPickedUsedVar && CSRand.Freedom[index] == 0
                answer,CSTemp   =  SetToOne(CSTemp,index)
                if answer
-                  #println("Old solution value : ",CS.CurrentObjectiveValue,"\n After setting x",RandomlyPickedUsedVar," to 0 we have  ",CSRand.CurrentObjectiveValue)
-                  #println("After setting x",RandomlyPickedFreeVar," to 1 we got :",CSTemp.CurrentObjectiveValue)
                   CSRand   = deepcopy(CSTemp)
                else
                   CSTemp   = deepcopy(CSRand)
                end
-               #push!(CurrentVarFree,convert(Int64,CSRand.Utility[1,j]))
             end
          end
          return CSRand
-         #=if length(CurrentVarFree)>0
-            RandomlyPickedFreeVar = rand(CurrentVarFree)
-            answer,CSTemp   =  SetToOne(CSTemp,RandomlyPickedFreeVar)
-            if answer
-               #println("Old solution value : ",CS.CurrentObjectiveValue,"\n After setting x",RandomlyPickedUsedVar," to 0 we have  ",CSRand.CurrentObjectiveValue)
-               #println("After setting x",RandomlyPickedFreeVar," to 1 we got :",CSTemp.CurrentObjectiveValue)
-               return CSTemp
-            else
-               CSTemp   = CSRand
-            end
-         end=#
       end
    end
    return CS

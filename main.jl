@@ -19,6 +19,7 @@ type CurrentSolution
    CurrentObjectiveValue::Int
    Variables::Vector{Int}
    CurrentVariables::Vector{Int}
+   CurrentVarUsed::Vector{Int}
    LeftMembers_Constraints::SparseMatrixCSC{Float64,Int64}
    LastRightMemberValue_Constraint::Vector{Int}
    Utility::Array{Float64,2}
@@ -70,7 +71,8 @@ for i in eachindex(FileList)
    #READING DATA FROM FILE
    BPP = ReadFile(string("./Data/",FileList[i]))
    #if nbProb <= 4 && BPP.NBvariables <= 100 && BPP.NBconstraints <= 400
-   if FileList[i] == "pb_100rnd0700.dat" || FileList[i] == "pb_1000rnd0100.dat" || FileList[i] =="pb_100rnd0100.dat" || FileList[i] == "pb_2000rnd0100.dat"  || FileList[i] == "pb_200rnd0100.dat" || FileList[i] == "pb_500rnd0100.dat"
+   # FileList[i] == "pb_100rnd0700.dat" ||
+   if FileList[i] == "pb_1000rnd0100.dat" || FileList[i] =="pb_100rnd0100.dat" || FileList[i] == "pb_2000rnd0100.dat"  || FileList[i] == "pb_200rnd0100.dat" || FileList[i] == "pb_500rnd0100.dat"
       println("Probleme : ",FileList[i])
       #ProbTemp = Result();
 
@@ -83,15 +85,15 @@ for i in eachindex(FileList)
       println(AlphaProba)
       Stat        = ProbStat(zeros(Float64,4),zeros(Float64,4),zeros(Float64,4),zeros(Float64,4),zeros(Int64,4),Vector{CurrentSolution}(4))
       fill!(Stat.Min, typemax(Float64))
-      itmax  = 1000
-      itmax1 = 30
+      itmax  = 200
+      itmax1 = 10
       AlphaValueOBJ = Array{Int64}(4,itmax*itmax1)
       #fill!(AlphaValueOBJ,Vector{Int64})
 
-      for k in 1:1:itmax1
+      #=for k in 1:1:itmax1
          for j in 1:1:itmax
             indLa,Alpha    = ReactiveGrasp(AlphaProba,AlphaVal)
-            CS             = GraspConstruction(CurrentSolution(BPP.NBconstraints, BPP.NBvariables, 0, BPP.Variables,zeros(BPP.NBvariables), BPP.LeftMembers_Constraints, zeros(BPP.NBconstraints), zeros(2,BPP.NBvariables), zeros(BPP.NBvariables)),Alpha)
+            CS             = GraspConstruction(CurrentSolution(BPP.NBconstraints, BPP.NBvariables, 0, BPP.Variables,zeros(BPP.NBvariables),Vector{Int} BPP.LeftMembers_Constraints, zeros(BPP.NBconstraints), zeros(2,BPP.NBvariables), zeros(BPP.NBvariables)),Alpha)
             #println(j);
             #CS             = SimulatedAnnealing(CS,500,0.75,5,10)
             #test           = GetRandomNeighbour(CS)
@@ -128,13 +130,16 @@ for i in eachindex(FileList)
       maxvl = 0
       maxind = 0
       for w in 1:1:4
-         if Stat.Max > maxvl[w]
+         if Stat.Max[w] > maxvl
             maxvl    = Stat.Max[w]
             maxind   = w
          end
-      end
-      HistoryY,SIMUaNNE = SimulatedAnnealing(Stat.BestSolution[maxind],500,0.95,convert(Int,1.5*CS.NBvariables),0.5)
-      println("OBJ :",SIMUaNNE.CurrentObjectiveValue)
+      end=#
+      CS = CurrentSolution(BPP.NBconstraints, BPP.NBvariables, 0, BPP.Variables,zeros(BPP.NBvariables),zeros(Int64,0), BPP.LeftMembers_Constraints, zeros(BPP.NBconstraints), zeros(2,BPP.NBvariables), zeros(BPP.NBvariables))
+      CS = GraspConstruction(CS,0.75)
+      println("Grasp construction : ",CS.CurrentObjectiveValue," with ",CS.CurrentVarUsed)
+      #HistoryY,SIMUaNNE = SimulatedAnnealing(CS,500.0,0.95,convert(Int,1.5*CS.NBvariables),1.0)
+      #println("OBJ :",SIMUaNNE.CurrentObjectiveValue)
       #=indLa,Alpha    = ReactiveGrasp(AlphaProba,AlphaVal)
       CS             = GraspConstruction(CurrentSolution(BPP.NBconstraints, BPP.NBvariables, 0, BPP.Variables,zeros(BPP.NBvariables), BPP.LeftMembers_Constraints, zeros(BPP.NBconstraints), zeros(2,BPP.NBvariables), zeros(BPP.NBvariables)),Alpha)
       println("Got :",CS.CurrentObjectiveValue, " With GRASP construction")
@@ -172,7 +177,7 @@ for i in eachindex(FileList)
       ProbTemp.HeurObj        = cs.CurrentObjectiveValue
       Resume[nbProb]          = deepcopy(ProbTemp)=#
       nbProb+=1
-   elseif nbProb >4
+   elseif nbProb >=4
       break;
    end
 
