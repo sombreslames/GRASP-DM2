@@ -69,25 +69,26 @@ for i in eachindex(FileList)
    m           = Model(solver=GLPKSolverMIP())
    #READING DATA FROM FILE
    BPP = ReadFile(string("./Data/",FileList[i]))
-   if nbProb <= 4 && BPP.NBvariables <= 100 && BPP.NBconstraints <= 400
+   #if nbProb <= 4 && BPP.NBvariables <= 100 && BPP.NBconstraints <= 400
+   if FileList[i] == "pb_100rnd0700.dat" || FileList[i] == "pb_1000rnd0100.dat" || FileList[i] =="pb_100rnd0100.dat" || FileList[i] == "pb_2000rnd0100.dat"  || FileList[i] == "pb_200rnd0100.dat" || FileList[i] == "pb_500rnd0100.dat"
       println("Probleme : ",FileList[i])
       #ProbTemp = Result();
 
-      AlphaVal   = [0.5, 0.6, 0.75, 0.9]
+      AlphaVal   = [0.5, 0.6, 0.75, 0.76]
       AlphaProba = [0.25,0.25,0.25,0.25]
 
-      #println("Before the run we got these Lambda :")
-      #println(AlphaVal)
-      #println("With these probabilities :")
-      #println(AlphaProba)
-      #Stat        = ProbStat(zeros(Float64,4),zeros(Float64,4),zeros(Float64,4),zeros(Float64,4),zeros(Int64,4),Vector{CurrentSolution}(4))
-      #fill!(Stat.Min, typemax(Float64))
+      println("Before the run we got these Lambda :")
+      println(AlphaVal)
+      println("With these probabilities :")
+      println(AlphaProba)
+      Stat        = ProbStat(zeros(Float64,4),zeros(Float64,4),zeros(Float64,4),zeros(Float64,4),zeros(Int64,4),Vector{CurrentSolution}(4))
+      fill!(Stat.Min, typemax(Float64))
       itmax  = 1000
       itmax1 = 30
       AlphaValueOBJ = Array{Int64}(4,itmax*itmax1)
       #fill!(AlphaValueOBJ,Vector{Int64})
 
-      #=for k in 1:1:itmax1
+      for k in 1:1:itmax1
          for j in 1:1:itmax
             indLa,Alpha    = ReactiveGrasp(AlphaProba,AlphaVal)
             CS             = GraspConstruction(CurrentSolution(BPP.NBconstraints, BPP.NBvariables, 0, BPP.Variables,zeros(BPP.NBvariables), BPP.LeftMembers_Constraints, zeros(BPP.NBconstraints), zeros(2,BPP.NBvariables), zeros(BPP.NBvariables)),Alpha)
@@ -123,8 +124,18 @@ for i in eachindex(FileList)
       println("Maximum found : ",Stat.Max)
       println("Minimum found : ",Stat.Min)
       println("Average : ",Stat.Average)
-      println("Number of runs : ",Stat.NBdone)=#
-      indLa,Alpha    = ReactiveGrasp(AlphaProba,AlphaVal)
+      println("Number of runs : ",Stat.NBdone)
+      maxvl = 0
+      maxind = 0
+      for w in 1:1:4
+         if Stat.Max > maxvl[w]
+            maxvl    = Stat.Max[w]
+            maxind   = w
+         end
+      end
+      HistoryY,SIMUaNNE = SimulatedAnnealing(Stat.BestSolution[maxind],500,0.95,convert(Int,1.5*CS.NBvariables),0.5)
+      println("OBJ :",SIMUaNNE.CurrentObjectiveValue)
+      #=indLa,Alpha    = ReactiveGrasp(AlphaProba,AlphaVal)
       CS             = GraspConstruction(CurrentSolution(BPP.NBconstraints, BPP.NBvariables, 0, BPP.Variables,zeros(BPP.NBvariables), BPP.LeftMembers_Constraints, zeros(BPP.NBconstraints), zeros(2,BPP.NBvariables), zeros(BPP.NBvariables)),Alpha)
       println("Got :",CS.CurrentObjectiveValue, " With GRASP construction")
       HistoryY,SIMUaNNE = SimulatedAnnealing(CS,500,0.95,convert(Int,1.5*CS.NBvariables),0.5)
@@ -136,7 +147,8 @@ for i in eachindex(FileList)
       plot(HistoryX,HistoryY, "--")
       xlabel("Iterations")
       ylabel("Objective value")
-      grid("on")
+      grid("on")=#
+
       #plot(y,Historyx, "b-", linewidth=2)
       #xlabel("Iterations")
       #ylabel("Objective value")

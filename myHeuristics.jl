@@ -215,6 +215,8 @@ end
 function UpdateReactiveGrasp(AlphaProba::Vector{Float64},Average::Vector{Float64},Worst::Vector{Float64},Max::Vector{Float64})
    NewValue = Vector{Float64}(length(AlphaProba))
    for i in eachindex(AlphaProba)
+      #println("( ",Average[i]," - ",Worst[i]," ) /( ",Max[i]," - ",Worst[i], " )")
+      #Wrong ig Average or worst are the same value or if max and worst are the same value
       NewValue[i] = ( Average[i] - Worst[i] ) / ( Max[i] - Worst[i] )
    end
    SumOfNew = sum(NewValue)
