@@ -35,12 +35,12 @@ type Result
    Result() = new()#Allow to create unintialized type
 end
 type ProbStat
-   Max::Vector{Float64}
+   Max::Float64
    Average::Vector{Float64}
-   Min::Vector{Float64}
+   Min::Float64
    NBdone::Vector{Float64}
    Sum::Vector{Int64}
-   BestSolution::Vector{CurrentSolution}
+   BestSolution::CurrentSolution
 end
 function ReadFile(FileName::String)
    workingfile    = open(FileName)
@@ -72,39 +72,34 @@ for i in eachindex(FileList)
    BPP = ReadFile(string("./Data/",FileList[i]))
    #if nbProb <= 4 && BPP.NBvariables <= 100 && BPP.NBconstraints <= 400
    # FileList[i] == "pb_100rnd0700.dat" ||
-   if FileList[i] == "pb_1000rnd0100.dat" || FileList[i] =="pb_100rnd0100.dat" || FileList[i] == "pb_2000rnd0100.dat"  || FileList[i] == "pb_200rnd0100.dat" || FileList[i] == "pb_500rnd0100.dat"
+   if FileList[i] == "pb_100rnd0700.dat"  || FileList[i] == "pb_1000rnd0100.dat" || FileList[i] =="pb_100rnd0100.dat" || FileList[i] == "pb_2000rnd0100.dat"  || FileList[i] == "pb_200rnd0100.dat" || FileList[i] == "pb_500rnd0100.dat"
       println("Probleme : ",FileList[i])
       #ProbTemp = Result();
 
-      AlphaVal   = [0.5, 0.6, 0.75, 0.76]
+      AlphaVal   = [0.5, 0.6, 0.75, 0.9]
       AlphaProba = [0.25,0.25,0.25,0.25]
 
       println("Before the run we got these Lambda :")
       println(AlphaVal)
       println("With these probabilities :")
       println(AlphaProba)
-      Stat        = ProbStat(zeros(Float64,4),zeros(Float64,4),zeros(Float64,4),zeros(Float64,4),zeros(Int64,4),Vector{CurrentSolution}(4))
-      fill!(Stat.Min, typemax(Float64))
+      CSB     = CurrentSolution(BPP.NBconstraints, BPP.NBvariables, 0, BPP.Variables,zeros(BPP.NBvariables),zeros(Int64,0), BPP.LeftMembers_Constraints, zeros(BPP.NBconstraints), zeros(2,BPP.NBvariables), zeros(BPP.NBvariables))
+      Stat   = ProbStat(0.0,zeros(Float64,4),typemax(Float64),zeros(Float64,4),zeros(Int64,4),CSB)
       itmax  = 200
       itmax1 = 10
       AlphaValueOBJ = Array{Int64}(4,itmax*itmax1)
       #fill!(AlphaValueOBJ,Vector{Int64})
 
-      #=for k in 1:1:itmax1
+      for k in 1:1:itmax1
          for j in 1:1:itmax
+            CS     = deepcopy(CSB)
             indLa,Alpha    = ReactiveGrasp(AlphaProba,AlphaVal)
-            CS             = GraspConstruction(CurrentSolution(BPP.NBconstraints, BPP.NBvariables, 0, BPP.Variables,zeros(BPP.NBvariables),Vector{Int} BPP.LeftMembers_Constraints, zeros(BPP.NBconstraints), zeros(2,BPP.NBvariables), zeros(BPP.NBvariables)),Alpha)
-            #println(j);
-            #CS             = SimulatedAnnealing(CS,500,0.75,5,10)
-            #test           = GetRandomNeighbour(CS)
-            #println(test.CurrentObjectiveValue)
-            #Effectuer la recherche locale ici
-            #CS             = LocalSearch(CS,convert(Int,Alpha*CS.NBvariables))
-            if CS.CurrentObjectiveValue > Stat.Max[indLa]
-               Stat.Max[indLa]            = CS.CurrentObjectiveValue
-               Stat.BestSolution[indLa]   = deepcopy(CS)
-            elseif CS.CurrentObjectiveValue < Stat.Min[indLa]
-               Stat.Min[indLa]            = CS.CurrentObjectiveValue
+            CS             = GraspConstruction(CS,Alpha)
+            if CS.CurrentObjectiveValue > Stat.Max
+               Stat.Max                   = CS.CurrentObjectiveValue
+               Stat.BestSolution          = deepcopy(CS)
+            elseif CS.CurrentObjectiveValue < Stat.Min
+               Stat.Min                   = CS.CurrentObjectiveValue
             end
             Stat.Sum[indLa]           += CS.CurrentObjectiveValue
             Stat.NBdone[indLa]        += 1
@@ -113,12 +108,7 @@ for i in eachindex(FileList)
          for d in 1:1:4
             Stat.Average[d] = Stat.Sum[d]/Stat.NBdone[d]
          end
-         #GetRandomNeighbour(Stat.BestSolution[1])
-
          AlphaProba         = UpdateReactiveGrasp(AlphaProba, Stat.Average,Stat.Min,Stat.Max)
-
-         #SIMUaNNE = SimulatedAnnealing(Stat.BestSolution[1],500,0.75,5,10)
-         #println("Solution with Simulated Annealing : \n",SIMUaNNE.CurrentObjectiveValue)
       end
       println("After the ",itmax1*itmax," run we got :")
       println(AlphaProba)
@@ -127,32 +117,16 @@ for i in eachindex(FileList)
       println("Minimum found : ",Stat.Min)
       println("Average : ",Stat.Average)
       println("Number of runs : ",Stat.NBdone)
-      maxvl = 0
-      maxind = 0
-      for w in 1:1:4
-         if Stat.Max[w] > maxvl
-            maxvl    = Stat.Max[w]
-            maxind   = w
-         end
-      end=#
-      CS = CurrentSolution(BPP.NBconstraints, BPP.NBvariables, 0, BPP.Variables,zeros(BPP.NBvariables),zeros(Int64,0), BPP.LeftMembers_Constraints, zeros(BPP.NBconstraints), zeros(2,BPP.NBvariables), zeros(BPP.NBvariables))
-      CS = GraspConstruction(CS,0.75)
-      println("Grasp construction : ",CS.CurrentObjectiveValue," with ",CS.CurrentVarUsed)
-      #HistoryY,SIMUaNNE = SimulatedAnnealing(CS,500.0,0.95,convert(Int,1.5*CS.NBvariables),1.0)
-      #println("OBJ :",SIMUaNNE.CurrentObjectiveValue)
-      #=indLa,Alpha    = ReactiveGrasp(AlphaProba,AlphaVal)
-      CS             = GraspConstruction(CurrentSolution(BPP.NBconstraints, BPP.NBvariables, 0, BPP.Variables,zeros(BPP.NBvariables), BPP.LeftMembers_Constraints, zeros(BPP.NBconstraints), zeros(2,BPP.NBvariables), zeros(BPP.NBvariables)),Alpha)
-      println("Got :",CS.CurrentObjectiveValue, " With GRASP construction")
-      HistoryY,SIMUaNNE = SimulatedAnnealing(CS,500,0.95,convert(Int,1.5*CS.NBvariables),0.5)
+      println("Grasp construction : ",Stat.BestSolution.CurrentObjectiveValue," with ",CS.CurrentVarUsed)
+      HistoryY,SIMUaNNE = SimulatedAnnealing(Stat.BestSolution,500.0,0.95,150,1.0)
       println("Solution with Simulated Annealing : \n",SIMUaNNE.CurrentObjectiveValue)
       HistoryX               = collect(1:1:length(HistoryY))
-      println("y :",length(HistoryY),"x :",length(HistoryX))
-
+      #I plot the 911
       title(FileList[i])
       plot(HistoryX,HistoryY, "--")
       xlabel("Iterations")
       ylabel("Objective value")
-      grid("on")=#
+      grid("on")
 
       #plot(y,Historyx, "b-", linewidth=2)
       #xlabel("Iterations")

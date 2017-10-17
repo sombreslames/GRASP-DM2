@@ -153,12 +153,10 @@ function SetToOne(CS::CurrentSolution, x::Int)
 end
 
 
-function UpdateReactiveGrasp(AlphaProba::Vector{Float64},Average::Vector{Float64},Worst::Vector{Float64},Max::Vector{Float64})
+function UpdateReactiveGrasp(AlphaProba::Vector{Float64},Average::Vector{Float64},Worst::Float64,Max::Float64)
    NewValue = Vector{Float64}(length(AlphaProba))
    for i in eachindex(AlphaProba)
-      #println("( ",Average[i]," - ",Worst[i]," ) /( ",Max[i]," - ",Worst[i], " )")
-      #Wrong ig Average or worst are the same value or if max and worst are the same value
-      NewValue[i] = ( Average[i] - Worst[i] ) / ( Max[i] - Worst[i] )
+      NewValue[i] = ( Average[i] - Worst ) / ( Max - Worst )
    end
    SumOfNew = sum(NewValue)
    for i in eachindex(AlphaProba)
@@ -185,10 +183,11 @@ function SimulatedAnnealing(CS::CurrentSolution,InitTemperature::Float64,Cooling
    Temperature = InitTemperature
    LOL         = true
 	Historic 	= Int[]
+   nbRun       = 0
    while LOL
       for i in 1:1:StepSize
-         LocalCS 			= GetRandomNeighbour(CSTemp)
-         #LocalCS        = deepcopy(CSTemp) #Work on CSTemp
+         LocalCS        = AddOrElseDrop(CSTemp)
+         #LocalCS 			= GetRandomNeighbour(CSTemp)
          DeltaObj       = LocalCS.CurrentObjectiveValue - CSTemp.CurrentObjectiveValue
 			ValueOf			= exp(DeltaObj/Temperature)
 			RandValue 		= rand()
@@ -202,6 +201,7 @@ function SimulatedAnnealing(CS::CurrentSolution,InitTemperature::Float64,Cooling
             end
          end
       end
+      nbRun += 1
       Temperature *= CoolingCoef
       if Temperature < MinTemp
          LOL = false
@@ -237,4 +237,26 @@ function GetRandomNeighbour(CS::CurrentSolution)
       end
    end
    return CS
+end
+function AddOrElseDrop(CS::CurrentSolution)
+   nb,FreeVar     = UpdateUtility(CS)
+   CSTemp         = deepcopy(CS)
+   if nb > 0
+      RandomVar   = convert(Int,FreeVar[1,rand(1:end)])
+      answer,CSTemp   =  SetToOne(CSTemp,convert(Int,RandomVar))
+      if answer
+         return CSTemp
+      else
+         println("FUck fuck fuck")
+      end
+   else
+      RandomlyPickedUsedVar = rand(CS.CurrentVarUsed)
+      answerz,CSTemp        = SetToZero(CSTemp,RandomlyPickedUsedVar)
+      if answerz
+         return CSTemp
+      else
+         println("Damn damn damn")
+      end
+   end
+   return nothing
 end
