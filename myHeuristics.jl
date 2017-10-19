@@ -19,84 +19,75 @@ type CurrentSolution
    Utility::Array{Float64,2}
    Freedom::Vector{Int}
 end
-#LastRightMemberValue sera un vecteur contenant la derniere valeur calculee pour la somme des membres de gauche des contraintes
-#LastModifiedIndex sera un entier ayant pour valeur l'indice de la derniere variable modifie de 0 a 1
-#LastRightMemberValue est la matrice des contraintes "Actualisee" ou si la variable Xj a pour valeur 1, les lignes de la matrice ou Xj est present seront passee a 0 et inversement
+#Ifg we order the utility we can stop directly after one var is under the limit
 function GraspConstruction(CS::CurrentSolution, Alpha::Float64)
-   CS                   = ComputeUtility(CS)
-   cs1                  = CS
-   Available            = CS.NBvariables
-   Utilities            = deepcopy(CS.Utility)
+   Available,CS         = ComputeUtilityPlus(CS)
+   cs1                  = deepcopy(CS)
    RandomCandidateList  = Int[]
-	#println(CS.Utility)
-   while Available > 1
+   while Available >= 1
       AboveTheLimit        = 0
-      #CS.Utility save the real utility array at t = 1
-      #Utilities is the current utilies, so without the impossible variables
       RandomCandidateList  = empty!(RandomCandidateList)
-      LimitSelect = (minimum(Utilities[2,:]) + (Alpha * (maximum(Utilities[2,:])-minimum(Utilities[2,:]))))
-		#println(minimum(Utilities[2,:]), " + (" ,Alpha, " * " ,"(",maximum(Utilities[2,:]),- ,minimum(Utilities[2,:]),"))")
-      #println("Limit for utility is :",LimitSelect)
+      LimitSelect = (minimum(cs1.Utility[2,:]) + (Alpha * (maximum(cs1.Utility[2,:])-minimum(cs1.Utility[2,:]))))
       for i = 1:1:Available
-         if Utilities[2,i] >= LimitSelect
-            RandomCandidateList = push!(RandomCandidateList,Utilities[1,i])
+         if cs1.Utility[2,i] >= LimitSelect
+            RandomCandidateList = push!(RandomCandidateList,cs1.Utility[1,i])
             AboveTheLimit       += 1
+         else
+            break
          end
       end
-		#println("Available : ",Available, " AboveTheLimit : ",AboveTheLimit)
+
       if AboveTheLimit == 0
          break
       else
-         #println("Candidate list is :",RandomCandidateList)
          RandomPickedCandidate   = rand(RandomCandidateList)
-         #println("We picked ",RandomPickedCandidate)
          answer,cs1              = SetToOne(cs1,RandomPickedCandidate)
-			if answer
-				#println("Current Solution : ",cs1.CurrentVariables,"\n For an OBJ worth :",cs1.CurrentObjectiveValue)
-			else
+			if answer == false
 				println("Failed")
 			end
-
-         Available,Utilities     = UpdateUtility(cs1)
       end
+      Available,cs1.Utility     = UpdateUtility(cs1)
+      #println("There are still ",Available," var available")
    end
-   #println("GRASP construction with ",Alpha," for lambda  : ",cs1.CurrentObjectiveValue)
+   cs1.Utility = deepcopy(CS.Utility)
    return cs1
 end
-
-function ComputeUtility(CS::CurrentSolution)
-	max = 0
+function ComputeUtilityPlus(CS::CurrentSolution)
+   UtilitiesIndex    = Float64[]
+   UtilitiesValues   = Float64[]
+   Inc               = 1
    for i = 1:1:CS.NBvariables
-         CS.Utility[1,i]   = i
-         nb                = sum(CS.LeftMembers_Constraints[:,i])
-			if nb == 0
-				CS.Utility[2,i]   = 0
-			else
-				CS.Utility[2,i]   = CS.Variables[i]/nb
-				if CS.Utility[2,i]> max
-					max = CS.Utility[2,i]
-				end
-			end
+      nb                = sum(CS.LeftMembers_Constraints[:,i])
+      if nb != 0
+         UtilitiesIndex    = push!(UtilitiesIndex,i)
+         UtilitiesValues   = push!(UtilitiesValues,(CS.Variables[i]/nb))
+         Inc += 1
+      else
+         CS.CurrentVariables[i]   = 2
+         CS.Freedom[i]            = 2
+         CS.CurrentObjectiveValue += CS.Variables[i]
+         #println("x",i," is not in any constraint we set it to 1. And Kick it from the problem")
+      end
    end
-	for i in eachindex(CS.Variables)
-		if CS.Utility[2,i] == 0
-			CS.Utility[2,i]   = max
-		end
-	end
-
-   CS.Utility    = sortcols(CS.Utility, rev=true, by = x -> (x[2]))
-   return CS
+   Utilities         = Matrix(0,Inc-1)
+   Utilities         = vcat(Utilities,UtilitiesIndex')
+   Utilities         = vcat(Utilities,UtilitiesValues')
+   CS.Utility        = deepcopy(Utilities)
+   CS.Utility=sortcols(CS.Utility, rev=true, by = x -> x[2])
+   return Inc-1,CS
 end
 
 function UpdateUtility(CS::CurrentSolution)
    UtilitiesIndex    = Float64[]
    UtilitiesValues   = Float64[]
    Inc               = 1
-   for i = 1:1:CS.NBvariables
+   size              = length(CS.Utility[1,:])
+   for i = 1:1:size
 		index = convert(Int,CS.Utility[1,i])
       if CS.Freedom[index] == 0 && CS.CurrentVariables[index] == 0
          UtilitiesIndex    = push!(UtilitiesIndex,CS.Utility[1,i])
          UtilitiesValues   = push!(UtilitiesValues,CS.Utility[2,i])
+
          Inc += 1
       end
    end
@@ -121,9 +112,9 @@ function SetToZero(CS::CurrentSolution, x::Int)
    else
       return false,CS
    end
-   CS.CurrentVarUsed      = deleteat!(CS.CurrentVarUsed,findin(CS.CurrentVarUsed,x))
-   CS.CurrentVariables[x] = 0
-   CS.CurrentObjectiveValue-=CS.Variables[x]
+   CS.CurrentVarUsed          = deleteat!(CS.CurrentVarUsed,findin(CS.CurrentVarUsed,x))
+   CS.CurrentVariables[x]     = 0
+   CS.CurrentObjectiveValue   -=CS.Variables[x]
    return true,CS
 end
 
@@ -202,6 +193,7 @@ function SimulatedAnnealing(CS::CurrentSolution,InitTemperature::Float64,Cooling
          end
       end
       nbRun += 1
+      #println("Nb of run : ",StepSize * nbRun)
       Temperature *= CoolingCoef
       if Temperature < MinTemp
          LOL = false
@@ -211,8 +203,6 @@ function SimulatedAnnealing(CS::CurrentSolution,InitTemperature::Float64,Cooling
 end
 
 
-#THis function just do a 1/1 swap
-#Must be changed to AddMultipleOrElseDrop1
 function GetRandomNeighbour(CS::CurrentSolution)
    while true
       CurrentVarFree        = Int64[]
@@ -222,12 +212,14 @@ function GetRandomNeighbour(CS::CurrentSolution)
       answerz,CSRand        = SetToZero(CSTemp,RandomlyPickedUsedVar)
       if answerz
          CSTemp            = deepcopy(CSRand)
-         for j = 1:1:CS.NBvariables
+         for j = 1:1:length(CS.Utility[1,:])
             index = convert(Int64,CSRand.Utility[1,j])
             if index != RandomlyPickedUsedVar && CSRand.Freedom[index] == 0
                answer,CSTemp   =  SetToOne(CSTemp,index)
                if answer
-                  CSRand   = deepcopy(CSTemp)
+                  if CSTemp.CurrentObjectiveValue > CSRand.CurrentObjectiveValue
+                     CSRand   = deepcopy(CSTemp)
+                  end
                else
                   CSTemp   = deepcopy(CSRand)
                end
@@ -242,7 +234,7 @@ function AddOrElseDrop(CS::CurrentSolution)
    nb,FreeVar     = UpdateUtility(CS)
    CSTemp         = deepcopy(CS)
    if nb > 0
-      RandomVar   = convert(Int,FreeVar[1,rand(1:end)])
+      RandomVar       = convert(Int,FreeVar[1,rand(1:end)])
       answer,CSTemp   =  SetToOne(CSTemp,convert(Int,RandomVar))
       if answer
          return CSTemp
@@ -259,4 +251,9 @@ function AddOrElseDrop(CS::CurrentSolution)
       end
    end
    return nothing
+end
+function SimpleGreedyLocalSearch(CS::CurrentSolution)
+
+
+
 end
