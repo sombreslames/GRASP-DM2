@@ -1,12 +1,3 @@
-#Algorithme de descente glouton
-#Principe de cet algorithme :
-#Creation d'un heuristique de construction permettant de trouver solution admissible x0
-#cette heuristique de depart sera develloper ici
-#Mise en place d'une heuristique de recherche locale de type plus profonde descente
-#Celle ci sera fondee sur deux voisins
-#Order variable by decreasing cost
-#Align the constraints with the variable order
-#Compute the ratio between the cost and the total number of occurence of the variable in all the constraints
 type CurrentSolution
    NBconstraints::Int
    NBvariables::Int
