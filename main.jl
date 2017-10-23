@@ -6,6 +6,7 @@
 using JuMP, GLPKMathProgInterface,PyPlot
 
 include("myHeuristics.jl")
+include("plotting_meta.jl")
 type Problem
    NBvariables::Int
    NBconstraints::Int
@@ -16,7 +17,7 @@ end
 type CurrentSolution
    NBconstraints::Int
    NBvariables::Int
-   CurrentObjectiveValue::Int
+   CurrentObjectiveValue::Int64
    Variables::Vector{Int}
    CurrentVariables::Vector{Int}
    CurrentVarUsed::Vector{Int}
@@ -37,9 +38,9 @@ type Result
    Result() = new()#Allow to create unintialized type
 end
 type ProbStat
-   Max::Float64
+   Max::Int64
    Average::Vector{Float64}
-   Min::Float64
+   Min::Int64
    NBdone::Vector{Float64}
    HeurConsTime::Vector{Float64}
    HeurLSTime::Vector{Float64}
@@ -77,7 +78,7 @@ for i in eachindex(FileList)
    #if nbProb <= 4 && BPP.NBvariables <= 100 && BPP.NBconstraints <= 400
    # FileList[i] == "pb_100rnd0700.dat" || FileList[i] == "pb_100rnd0700.dat"  || FileList[i] == "pb_1000rnd0100.dat" || FileList[i] =="pb_100rnd0100.dat" || FileList[i] == "pb_2000rnd0100.dat"  || FileList[i] == "pb_200rnd0100.dat" || FileList[i] == "pb_500rnd0100.dat"
    # BPP.NBvariables <= 1000 && BPP.NBconstraints <= 500 && nbProb <= 12
-   if  BPP.NBvariables == 100
+   if  BPP.NBvariables == 100 && nbProb <10
       println("Probleme : ",FileList[i])
       ProbTemp = Result();
       CSB    = CurrentSolution(BPP.NBconstraints, BPP.NBvariables, 0, BPP.Variables,zeros(BPP.NBvariables),zeros(Int64,0), BPP.LeftMembers_Constraints, zeros(BPP.NBconstraints), zeros(2,BPP.NBvariables), zeros(BPP.NBvariables))
@@ -87,31 +88,36 @@ for i in eachindex(FileList)
       println(AlphaVal)
       println("With these probabilities :")
       println(AlphaProba)
-      Stat   = ProbStat(0.0,zeros(Float64,4),typemax(Float64),zeros(Float64,4),zeros(Float64,4),zeros(Float64,4),zeros(Int64,4),CSB)
-      itmax  = 10
-      itmax1 = 20
-      GraspOBJ = Array{Int64}(itmax*itmax1)
-      MaxObj   = Array{Int64}(itmax*itmax1)
-      LSOBJ    = Array{Int64}(itmax*itmax1)
+      Stat   = ProbStat(0,zeros(Float64,4),typemax(Int64),zeros(Float64,4),zeros(Float64,4),zeros(Float64,4),zeros(Int64,4),CSB)
+      itmax  = 20
+      itmax1 = 10
+      GraspOBJ = Vector{Int64}(itmax*itmax1)
+      MaxObj   = Vector{Int64}(itmax*itmax1)
+      LSOBJ    = Vector{Int64}(itmax*itmax1)
       #fill!(AlphaValueOBJ,Vector{Int64})
       @time for k in 1:1:itmax1
          for j in 1:1:itmax
+            currIndex = ((k-1)*10)+j
             CS     = deepcopy(CSB)
+
             indLa,Alpha    = ReactiveGrasp(AlphaProba,AlphaVal)
             Stat.HeurConsTime[indLa] += @elapsed CS = GraspConstruction(CS,Alpha)
-            GraspOBJ[j*k]           = CS.CurrentObjectiveValue
+            GraspOBJ[currIndex]           = CS.CurrentObjectiveValue
+
             Stat.HeurLSTime[indLa] += @elapsed CS = SimpleGreedyLocalSearch(CS)
-            LSOBJ[j*k]              = CS.CurrentObjectiveValue
+            #Stat.HeurLSTime[indLa] += @elapsed CS = SimulatedAnnealing(CS,500.0,0.95,100,1.0)
+            LSOBJ[currIndex]              = CS.CurrentObjectiveValue
+
             if CS.CurrentObjectiveValue > Stat.Max
                Stat.Max                   = CS.CurrentObjectiveValue
                Stat.BestSolution          = deepcopy(CS)
             elseif CS.CurrentObjectiveValue < Stat.Min
                Stat.Min                   = CS.CurrentObjectiveValue
             end
-            MaxObj[j*k]                = Stat.Max
+
+            MaxObj[currIndex]                = Stat.Max
             Stat.Sum[indLa]           += CS.CurrentObjectiveValue
             Stat.NBdone[indLa]        += 1
-            AlphaValueOBJ[j*k]         = CS.CurrentObjectiveValue
          end
          for d in 1:1:4
             Stat.Average[d] = Stat.Sum[d]/Stat.NBdone[d]
@@ -120,9 +126,13 @@ for i in eachindex(FileList)
             Stat.HeurConsTime[d] = round(Stat.HeurConsTime[d],5)
             Stat.HeurLSTime[d]   = round(Stat.HeurLSTime[d],5)
          end
+         println("After the ",k*20," run we got :")
+         println("Maximum found : ",Stat.Max)
+         println("Minimum found : ",Stat.Min)
+         println("Average : ",Stat.Average)
          AlphaProba         = UpdateReactiveGrasp(AlphaProba, Stat.Average,Stat.Min,Stat.Max)
       end
-      println("After the ",itmax1*itmax," run we got :")
+      #=println("After the ",itmax1*itmax," run we got :")
       println(AlphaProba)
       println(AlphaVal)
       println("Maximum found : ",Stat.Max)
@@ -131,9 +141,13 @@ for i in eachindex(FileList)
       println("Average GRASP construction time :",Stat.HeurConsTime)
       println("Average LS time :",Stat.HeurLSTime)
       println("Number of runs : ",Stat.NBdone)
-      println("Grasp construction : ",Stat.BestSolution.CurrentObjectiveValue)
-      #HistoryX               = collect(1:1:itmax*itmax1)
-      #plotRunGrasp(FileList[i],GraspOBJ, LSOBJ, MaxObj)
+      println("Grasp construction : ",Stat.BestSolution.CurrentObjectiveValue)=#
+      #HistoryX  = Vector{Int64}(itmax1)
+      #for div = 1:itmax1
+      #   HystoryX[div]  =  itmax * div
+      #end
+      plotRunGrasp(FileList[i],GraspOBJ, LSOBJ, MaxObj)
+      #plotAnalyseGrasp(FileList[i],HystoryX)
 #=
       @variable(   m , x[1:BPP.NBvariables], Bin)
       @objective(  m , Max, sum( BPP.Variables[j] * x[j] for j=1:BPP.NBvariables ) )
@@ -146,28 +160,13 @@ for i in eachindex(FileList)
       ProbTemp.GLPKObj        = getobjectivevalue(m)
       ProbTemp.HeurConsObj    = CS.CurrentObjectiveValue
       Resume[nbProb]          = deepcopy(ProbTemp)=#
-      nbProb+=1
+      nbProb=10
    elseif nbProb >=10
       break;
    end
 
 end
-function plotRunGrasp(iname,zinit, zls, zbest)
-    figure("Examen d'un run",figsize=(6,6)) # Create a new figure
-    title("GRASP-SPP | zConst/zLS/zBest | "iname)
-    xlabel("Itérations")
-    ylabel("valeurs de z(x)")
-    ylim(0, maximum(zbest)+2)
 
-    nPoint = length(zinit)
-    x=collect(1:nPoint)
-    xticks([1,convert(Int64,ceil(nPoint/4)),convert(Int64,ceil(nPoint/2)), convert(Int64,ceil(nPoint/4*3)),nPoint])
-    plot(x,zbest, linewidth=2.0, color="green", label="meilleures solutions")
-    plot(x,zls,ls="",marker="^",ms=2,color="green",label="toutes solutions améliorées")
-    plot(x,zinit,ls="",marker=".",ms=2,color="red",label="toutes solutions construites")
-    vlines(x, zinit, zls, linewidth=0.5)
-    legend(loc=4, fontsize ="small")
-end
 #=
 for resu in eachindex(Resume)
    println("For the problem ",Resume[resu].Name," with ",Resume[resu].NBvariables, " variables.")

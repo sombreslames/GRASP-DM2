@@ -135,7 +135,7 @@ function SetToOne(CS::CurrentSolution, x::Int)
 end
 
 
-function UpdateReactiveGrasp(AlphaProba::Vector{Float64},Average::Vector{Float64},Worst::Float64,Max::Float64)
+function UpdateReactiveGrasp(AlphaProba::Vector{Float64},Average::Vector{Float64},Worst::Int64,Max::Int64)
    NewValue = Vector{Float64}(length(AlphaProba))
    for i in eachindex(AlphaProba)
       NewValue[i] = ( Average[i] - Worst ) / ( Max - Worst )
@@ -146,7 +146,6 @@ function UpdateReactiveGrasp(AlphaProba::Vector{Float64},Average::Vector{Float64
    end
    return AlphaProba
 end
-
 function ReactiveGrasp(AlphaProba::Vector{Float64},AlphaVal::Vector{Float64})
    Proba = rand()
    Val = 0
@@ -166,7 +165,7 @@ function SimulatedAnnealing(CS::CurrentSolution,InitTemperature::Float64,Cooling
    CSBest      = deepcopy(CS)
    Temperature = InitTemperature
    ClimateChange         = true
-	Historic 	= Int[]
+	#Historic 	= Int[]
    nbRun       = 0
    while ClimateChange
       for i in 1:1:StepSize
@@ -178,10 +177,10 @@ function SimulatedAnnealing(CS::CurrentSolution,InitTemperature::Float64,Cooling
          if DeltaObj > 0 || ValueOf > RandValue
 				#println("Solution accepted : f(x) ",CSTemp.CurrentObjectiveValue, " --> "," f'(x) : ",CSTemp.CurrentObjectiveValue)
             CSTemp      = deepcopy(LocalCS)
-				Historic		= push!(Historic,CSTemp.CurrentObjectiveValue)
+				#Historic		= push!(Historic,CSTemp.CurrentObjectiveValue)
             if CSTemp.CurrentObjectiveValue > CSBest.CurrentObjectiveValue
                CSBest   =  deepcopy(CSTemp)
-					println("Improved ! We got : ",CSBest.CurrentObjectiveValue)
+					#println("Improved ! We got : ",CSBest.CurrentObjectiveValue)
             end
          end
       end
@@ -192,7 +191,7 @@ function SimulatedAnnealing(CS::CurrentSolution,InitTemperature::Float64,Cooling
          ClimateChange = false
       end
    end
-   return Historic,CSBest
+   return CSBest
 end
 
 
@@ -223,6 +222,7 @@ function GetRandomNeighbour(CS::CurrentSolution)
    end
    return CS
 end
+
 function AddOrElseDrop(CS::CurrentSolution)
    nb,FreeVar     = UpdateUtility(CS)
    CSTemp         = deepcopy(CS)
@@ -246,7 +246,7 @@ function AddOrElseDrop(CS::CurrentSolution)
    return nothing
 end
 #Un petit N puissance 4 au calme coder en 5 min because no need to opti bro
-
+#meme plus cest du caca
 function SimpleGreedyLocalSearch(CS::CurrentSolution)
    TempSolBest = deepcopy(CS)
    for ik = 1:1:length(CS.CurrentVarUsed)
@@ -276,7 +276,7 @@ function SimpleGreedyLocalSearch(CS::CurrentSolution)
                            TempSol4          = deepcopy(TempSol3)
                            nothing ,TempSol4 = SetToOne(TempSol4,indexP2)
                            if TempSol4.CurrentObjectiveValue > TempSolBest.CurrentObjectiveValue
-                              #println(TempSol4.CurrentObjectiveValue, " --> ", TempSolBest.CurrentObjectiveValue)
+                              println(TempSol4.CurrentObjectiveValue, " --> ", TempSolBest.CurrentObjectiveValue)
                               TempSolBest = deepcopy(TempSol4)
 
                            end
