@@ -276,7 +276,7 @@ function SimpleGreedyLocalSearch(CS::CurrentSolution)
                            TempSol4          = deepcopy(TempSol3)
                            nothing ,TempSol4 = SetToOne(TempSol4,indexP2)
                            if TempSol4.CurrentObjectiveValue > TempSolBest.CurrentObjectiveValue
-                              println(TempSol4.CurrentObjectiveValue, " --> ", TempSolBest.CurrentObjectiveValue)
+                              #println(TempSol4.CurrentObjectiveValue, " --> ", TempSolBest.CurrentObjectiveValue)
                               TempSolBest = deepcopy(TempSol4)
 
                            end

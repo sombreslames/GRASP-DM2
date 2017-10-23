@@ -79,7 +79,7 @@ for i in eachindex(FileList)
    # FileList[i] == "pb_100rnd0700.dat" || FileList[i] == "pb_100rnd0700.dat"  || FileList[i] == "pb_1000rnd0100.dat" || FileList[i] =="pb_100rnd0100.dat" || FileList[i] == "pb_2000rnd0100.dat"  || FileList[i] == "pb_200rnd0100.dat" || FileList[i] == "pb_500rnd0100.dat"
    # BPP.NBvariables <= 1000 && BPP.NBconstraints <= 500 && nbProb <= 12
 #  BPP.NBvariables == 100 && nbProb <10
-   if FileList[i] == "pb_100rnd0900.dat"
+   if FileList[i] == "pb_100rnd0100.dat"
       println("Probleme : ",FileList[i])
       ProbTemp = Result();
       CSB    = CurrentSolution(BPP.NBconstraints, BPP.NBvariables, 0, BPP.Variables,zeros(BPP.NBvariables),zeros(Int64,0), BPP.LeftMembers_Constraints, zeros(BPP.NBconstraints), zeros(2,BPP.NBvariables), zeros(BPP.NBvariables))
@@ -90,7 +90,7 @@ for i in eachindex(FileList)
       println("With these probabilities :")
       println(AlphaProba)
       Stat   = ProbStat(0,zeros(Float64,4),typemax(Int64),zeros(Float64,4),zeros(Float64,4),zeros(Float64,4),zeros(Int64,4),CSB)
-      itmax  = 20
+      itmax  = 25
       itmax1 = 10
       GraspOBJ = Vector{Int64}(itmax*itmax1)
       MaxObj   = Vector{Int64}(itmax*itmax1)
@@ -102,7 +102,7 @@ for i in eachindex(FileList)
       #fill!(AlphaValueOBJ,Vector{Int64})
       @time for k in 1:1:itmax1
          for j in 1:1:itmax
-            currIndex = ((k-1)*20)+j
+            currIndex = ((k-1)*itmax)+j
             CS     = deepcopy(CSB)
 
             indLa,Alpha    = ReactiveGrasp(AlphaProba,AlphaVal)
@@ -110,7 +110,7 @@ for i in eachindex(FileList)
             GraspOBJ[currIndex]           = CS.CurrentObjectiveValue
 
             Stat.HeurLSTime[indLa] += @elapsed CS = SimpleGreedyLocalSearch(CS)
-            #Stat.HeurLSTime[indLa] += @elapsed CS = SimulatedAnnealing(CS,500.0,0.95,100,1.0)
+            #Stat.HeurLSTime[indLa] += @elapsed CS = SimulatedAnnealing(CS,100.0,0.95,100,1.0)
             LSOBJ[currIndex]              = CS.CurrentObjectiveValue
 
             if CS.CurrentObjectiveValue > Stat.Max
@@ -135,12 +135,13 @@ for i in eachindex(FileList)
          end
          zmaxit[k] = Stat.Max
          zminit[k] = Stat.Min
-         zmoyit[k] = convert(Int64, floor(avgttot /(k*20)))
-         println("After the ",k*20," run we got :")
+         zmoyit[k] = convert(Int64, floor(avgttot /(itmax)))
+         AlphaProba = UpdateReactiveGrasp(AlphaProba, Stat.Average,Stat.Min,Stat.Max)
+         #=println("After the ",k*20," run we got :")
          println("Maximum found : ",Stat.Max)
          println("Minimum found : ",Stat.Min)
-         println("Average : ",Stat.Average)
-         AlphaProba         = UpdateReactiveGrasp(AlphaProba, Stat.Average,Stat.Min,Stat.Max)
+         println("Average : ",zmoyit[k])
+         println("Alpha proba : ",AlphaProba)=#
       end
       #=println("After the ",itmax1*itmax," run we got :")
       println(AlphaProba)
@@ -148,14 +149,18 @@ for i in eachindex(FileList)
       println("Maximum found : ",Stat.Max)
       println("Minimum found : ",Stat.Min)
       println("Average : ",Stat.Average)
-      println("Average GRASP construction time :",Stat.HeurConsTime)
-      println("Average LS time :",Stat.HeurLSTime)
+      println("Average GRASP construction time :",mean(Stat.HeurConsTime))
+      println("Average GRASP construction value :",mean(GraspOBJ))
+      println("Average LS time :",mean(Stat.HeurLSTime))
+      println("Average LS value :",mean(LSOBJ))
       println("Number of runs : ",Stat.NBdone)
-      println("Grasp construction : ",Stat.BestSolution.CurrentObjectiveValue)=#
+      println("Grasp construction : ",Stat.BestSolution.CurrentObjectiveValue)
+      =#
       HistoryX  = Vector{Int64}(itmax1)
       for div = 1:itmax1
          HistoryX[div]  =  itmax * div
       end
+
       #plotRunGrasp(FileList[i],GraspOBJ, LSOBJ, MaxObj)
       plotAnalyseGrasp(FileList[i],HistoryX,zmoyit,zminit,zmaxit)
 #=
@@ -170,8 +175,8 @@ for i in eachindex(FileList)
       ProbTemp.GLPKObj        = getobjectivevalue(m)
       ProbTemp.HeurConsObj    = CS.CurrentObjectiveValue
       Resume[nbProb]          = deepcopy(ProbTemp)=#
-      nbProb=10
-   elseif nbProb >=10
+      nbProb+=1
+   elseif nbProb >=12
       break;
    end
 
