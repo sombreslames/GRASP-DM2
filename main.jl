@@ -78,7 +78,8 @@ for i in eachindex(FileList)
    #if nbProb <= 4 && BPP.NBvariables <= 100 && BPP.NBconstraints <= 400
    # FileList[i] == "pb_100rnd0700.dat" || FileList[i] == "pb_100rnd0700.dat"  || FileList[i] == "pb_1000rnd0100.dat" || FileList[i] =="pb_100rnd0100.dat" || FileList[i] == "pb_2000rnd0100.dat"  || FileList[i] == "pb_200rnd0100.dat" || FileList[i] == "pb_500rnd0100.dat"
    # BPP.NBvariables <= 1000 && BPP.NBconstraints <= 500 && nbProb <= 12
-   if  BPP.NBvariables == 100 && nbProb <10
+#  BPP.NBvariables == 100 && nbProb <10
+   if FileList[i] == "pb_100rnd0900.dat"
       println("Probleme : ",FileList[i])
       ProbTemp = Result();
       CSB    = CurrentSolution(BPP.NBconstraints, BPP.NBvariables, 0, BPP.Variables,zeros(BPP.NBvariables),zeros(Int64,0), BPP.LeftMembers_Constraints, zeros(BPP.NBconstraints), zeros(2,BPP.NBvariables), zeros(BPP.NBvariables))
@@ -94,10 +95,14 @@ for i in eachindex(FileList)
       GraspOBJ = Vector{Int64}(itmax*itmax1)
       MaxObj   = Vector{Int64}(itmax*itmax1)
       LSOBJ    = Vector{Int64}(itmax*itmax1)
+      zmaxit   = Vector{Int64}(itmax1)
+      zminit   = Vector{Int64}(itmax1)
+      zmoyit   = Vector{Int64}(itmax1)
+      avgttot = 0
       #fill!(AlphaValueOBJ,Vector{Int64})
       @time for k in 1:1:itmax1
          for j in 1:1:itmax
-            currIndex = ((k-1)*10)+j
+            currIndex = ((k-1)*20)+j
             CS     = deepcopy(CSB)
 
             indLa,Alpha    = ReactiveGrasp(AlphaProba,AlphaVal)
@@ -118,6 +123,7 @@ for i in eachindex(FileList)
             MaxObj[currIndex]                = Stat.Max
             Stat.Sum[indLa]           += CS.CurrentObjectiveValue
             Stat.NBdone[indLa]        += 1
+            avgttot += CS.CurrentObjectiveValue
          end
          for d in 1:1:4
             Stat.Average[d] = Stat.Sum[d]/Stat.NBdone[d]
@@ -125,7 +131,11 @@ for i in eachindex(FileList)
             Stat.HeurLSTime[d]   = Stat.HeurLSTime[d]/Stat.NBdone[d]
             Stat.HeurConsTime[d] = round(Stat.HeurConsTime[d],5)
             Stat.HeurLSTime[d]   = round(Stat.HeurLSTime[d],5)
+
          end
+         zmaxit[k] = Stat.Max
+         zminit[k] = Stat.Min
+         zmoyit[k] = convert(Int64, floor(avgttot /(k*20)))
          println("After the ",k*20," run we got :")
          println("Maximum found : ",Stat.Max)
          println("Minimum found : ",Stat.Min)
@@ -142,12 +152,12 @@ for i in eachindex(FileList)
       println("Average LS time :",Stat.HeurLSTime)
       println("Number of runs : ",Stat.NBdone)
       println("Grasp construction : ",Stat.BestSolution.CurrentObjectiveValue)=#
-      #HistoryX  = Vector{Int64}(itmax1)
-      #for div = 1:itmax1
-      #   HystoryX[div]  =  itmax * div
-      #end
-      plotRunGrasp(FileList[i],GraspOBJ, LSOBJ, MaxObj)
-      #plotAnalyseGrasp(FileList[i],HystoryX)
+      HistoryX  = Vector{Int64}(itmax1)
+      for div = 1:itmax1
+         HistoryX[div]  =  itmax * div
+      end
+      #plotRunGrasp(FileList[i],GraspOBJ, LSOBJ, MaxObj)
+      plotAnalyseGrasp(FileList[i],HistoryX,zmoyit,zminit,zmaxit)
 #=
       @variable(   m , x[1:BPP.NBvariables], Bin)
       @objective(  m , Max, sum( BPP.Variables[j] * x[j] for j=1:BPP.NBvariables ) )
